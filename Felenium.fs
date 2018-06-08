@@ -1,11 +1,12 @@
 module Felenium
 
 open OpenQA.Selenium
-open Xunit
 open OpenQA.Selenium.Remote
+open OpenQA.Selenium.Support.UI
+open Xunit
 
 type ContentType =
-    Button | Div | A | Id | Title | ClassName | Name
+    Button | Div | A | Id | Title | Option | ClassName | Name | XPath
     
 let private locate elementType elementText =
     match elementType with
@@ -13,9 +14,11 @@ let private locate elementType elementText =
     | Div -> By.XPath <| "//div[contains(., '" + elementText + "')]"
     | A -> By.XPath <| "//a[contains(., '" + elementText + "')]"
     | Id -> By.Id elementText
-    | Title -> By.XPath <| @"//[@title=""" + elementText + @"""]"
+    | Title -> By.XPath <| @"//*[@title='" + elementText + "']"
+    | Option -> By.XPath <| "//option[contains(., '" + elementText + "')]"
     | ClassName -> By.ClassName elementText
     | Name -> By.Name elementText
+    | XPath -> By.XPath elementText
 
 let private getElement elementType elementText (driver:RemoteWebDriver) =
     let elements = 
@@ -35,15 +38,10 @@ let Write elementType elementText text (driver:RemoteWebDriver) =
     e.SendKeys text
     driver
 
-let Select elementType elementText innerElementType innerElementText (driver:RemoteWebDriver) =
+let Select elementType elementText innerElementText (driver:RemoteWebDriver) =
     let e = getElement elementType elementText driver
-    let ie = 
-        e.FindElements 
-        <| locate innerElementType innerElementText
-    Assert.NotNull ie
-    Assert.NotEmpty ie
-    let element = ie.[0]
-    element.Click()
+    let selector = new SelectElement(e)
+    selector.SelectByText innerElementText
     driver
 
 let Visit (url:string) (driver:RemoteWebDriver) =
@@ -73,4 +71,8 @@ let Check elementType text value (driver:RemoteWebDriver) =
     Assert.NotNull elements
     if isNull elements |> not then
         Assert.Equal (elements.[0].Text,value)
+    driver
+
+let Maximize (driver:RemoteWebDriver) =
+    driver.Manage().Window.Maximize()
     driver
